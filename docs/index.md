@@ -37,7 +37,9 @@ enter template path, press enter if it's `simple_module`
 fullstack
 ```
 <!-- 模板生成器提供4类模板fullstack全栈项目, 还有微服务模块项目, 微服务模块可以在全栈模板中作为一个项目被直接引用, 也可以直接作为一个graphql的微服务启动, 因为基于GQL, 两种方式都有完整的Schema支持(或者说智能提示) -->
-
+<!-- 
+simple_module可以用来单独做一个模块或者微服务(可以直接启动)
+isolated_module再simple_module的基础上增加进阶的基于接口和Mediator解耦, 适合更高复杂度的项目 -->
 
 
 打开项目后我们先启动`dev_env.ps1`脚本,他会帮我做以下操作
