@@ -3,9 +3,20 @@ sidebar_position: 1
 ---
 # 入门教程
 
+## intro
 
+框架的目标
+1. 枚举一切, no more "magic string(number)"<!-- 组里不再会出现互相问"数据库里\代码里\后端返回值里枚举1是代表什么意思, 一个系统几十个枚举, 几百个枚举值, 再也不用边写代码边看文档了" -->
+2. 符合直觉的代码体验，开箱即用的最佳实践<!-- 目前很多基于DDD的实践都引入了一大堆的概念, 却没有针对这一堆概念做一个最佳实践, 我们的目标就是用最符合直觉、手写代码量最小的方式去实现这样的一个最佳实践（至少目前用过的人评价都还不错） -->
+
+技术体系<!-- 一些技术框架的关键词, 不一一列举, 大家有兴趣可以自行查阅了解, 后续的演示部分会有涉及 -->
+前端: angular 15 + ngxs + apollo client(强类型的api调用)
+后端: graphql(hotchocolate) + 模块化开发(单体项目和微服务项目的快速切换) + mongodb + elk(日志及链路追踪) + casbin(授权体系(强类型)) + openiddict(认证体系, 单点登录) + 多租户 + 动态配置(强类型配置, 支持前端配置)
+开发环境: docker一键部署所有依赖 + 本地\测试环境一键切换 + 基于https的本地\测试环境联调
+
+<!-- 具体的内容会在稍后讲到 -->
 # 1分钟搭建前后端解决方案
-
+<!-- 模板生成器 -->
 GitHub地址`https://github.com/geex-graphql/Geex.TemplateGenerator`
 
 启动项目`Geex.TemplateGenerator`
@@ -25,7 +36,7 @@ book
 enter template path, press enter if it's `simple_module`
 fullstack
 ```
-
+<!-- 模板生成器提供4类模板fullstack全栈项目, 还有微服务模块项目, 微服务模块可以在全栈模板中作为一个项目被直接引用, 也可以直接作为一个graphql的微服务启动, 因为基于GQL, 两种方式都有完整的Schema支持(或者说智能提示) -->
 
 
 
@@ -84,17 +95,17 @@ query testBook {
 
 后端效果看完了，我们来看下前端
 
-前端先执行`yarn gqlgen`初始化一下前端接口代码，然后我们创建一下Book的业务页面,
+前端先执行`yarn gqlgen`同步一下前端接口代码, 避免前端大量报错，然后我们使用模板创建一下Book的业务模块, 包含一个列表页和一个编辑页
 
 执行命令`yarn ng g .\geex-schematics:module book --add-to-layout=LayoutBasicComponent`,创建后执行`yarn gqlgen`初始化代理
 
 打开页面后我们就可以看到如下页面，并完成CURD操作。
 
-# 快速完善业务代码（后端、测试、前端）
+# 快速完善业务代码（后端、测试、前端）<!-- 默认生成的代码对象中只有一个name字段 -->
 
 接下来我们来完善这个book业务，看一下开发流程。
-
-完善Book实体
+完善Book实体,
+<!-- 所有的业务改动从后端实体的修改开始, 增加一些字段, 增加构造函数 -->
 ```cs
 using System;
 using System.Linq;
@@ -131,30 +142,7 @@ using MediatR;
         public string ISBN { get; set; }
 ```
 
-```cs
-    public class CreateBookInput : IRequest<Book>
-    {
-        public string Name { get; set; }
-        public string Cover { get; set; }
-        public string Author { get; set; }
-        public string Press { get; set; }
-        public DateTimeOffset PublicationDate { get; set; }
-        public string ISBN { get; set; }
-    }
-
-
-
-    public class EditBookInput : IRequest<Unit>
-    {
-        public string Name { get; set; }
-        public string Cover { get; set; }
-        public string Author { get; set; }
-        public string Press { get; set; }
-        public DateTimeOffset PublicationDate { get; set; }
-        public string ISBN { get; set; }
-    }
-```
-
+<!-- 接下来调整一下对应的接口业务代码, 因为book有字段的调整, 所以创建\修改book的逻辑需要有相应的调整 -->
 ```cs
 
  public async Task<Book> CreateBook(CreateBookInput input)
@@ -202,7 +190,32 @@ using MediatR;
    
 ```
 
-我们回到`graphql`页面，补充一下查询字段可以发现，报错了，这是因为我们在Book实体上不允许字段为空
+<!-- 更新创建\修改book所需要的参数, 同样对应增加的字段 -->
+```cs
+    public class CreateBookInput : IRequest<Book>
+    {
+        public string Name { get; set; }
+        public string Cover { get; set; }
+        public string Author { get; set; }
+        public string Press { get; set; }
+        public DateTimeOffset PublicationDate { get; set; }
+        public string ISBN { get; set; }
+    }
+
+
+
+    public class EditBookInput : IRequest<Unit>
+    {
+        public string? Name { get; set; }
+        public string? Cover { get; set; }
+        public string? Author { get; set; }
+        public string? Press { get; set; }
+        public DateTimeOffset? PublicationDate { get; set; }
+        public string? ISBN { get; set; }
+    }
+```
+
+我们回到`graphql`页面，补充一下查询字段可以发现，报错了，这是因为我们在Book实体上的一些字段不允许为空
 ```gql
 query testBook {
   books(
@@ -248,6 +261,7 @@ mutation testCreateBook {
 
 我们来看前端，后端完成后，将测试文件发送给前端。前端补充相应字段，执行`yarn gqlgen`生成前端接口代码。我们现在可以去list页面看一下实体的字段，现在打开列表页面，业务完成了。
 
+<!-- 在当前页面的表格中增加一些字段, 此处的index属性表示从对象中读取哪些属性绑定到表格中, 支持嵌套, 有智能提示 -->
 ```ts
         {
           title: "封面",
@@ -287,13 +301,13 @@ mutation testCreateBook {
 
 ```ts
 
-// 用于约束添加/编辑，可以操作那些字段
+// 用于约束添加/编辑，哪些字段参与编辑
 type EntityEditablePart = Pick<Book, "name" | "cover" | "author" | "press" | "publicationDate" | "isbn">;
 
 // 用于约束详情接口会返回那些字段
 type BookEditPageContext = EditDataContext<
   BookDetailFragment,
-  "name" |  "cover" | "author" | "press" | "publicationDate" | "isbn"
+  keyof EntityEditablePart
 > & {
   disabled: boolean;
 };
@@ -302,7 +316,7 @@ type BookEditPageContext = EditDataContext<
 export class BookEditPage extends RoutedEditComponent<
   BookEditPageParams,
   BookDetailFragment,
-  "name" | "cover" | "author" | "press" | "publicationDate" | "isbn"
+  keyof EntityEditablePart
 > 
 
 
@@ -414,15 +428,14 @@ export class BookEditPage extends RoutedEditComponent<
 后端开发的规范总是围绕着DDD领域模型设计，但是90%在说DDD的人都没有真正理解和实践过DDD，或者只是简单地按照书本中的示例进行了模仿而没有真正掌握其核心思想。由于DDD本身较为复杂，需要理论和工具的支持更需要领域专家与开发人员进行沟通。
 
 Geex后端框架也是根据DDD方法论设计的，旨在帮助开发人员构建高质量、可维护、可扩展的应用程序。为了让开发人员能够更加快速、简单地编写代码，Geex提供了一系列基于DDD思想的快捷开发工具和规范。
-
-* DDD：领域驱动设计（Domain-Driven Design）聚合根、领域事件、领域服务，关于目前DDD的落地框架，引入了太多的设计概念，对开发人员的技术
-* 充血模型：为了减少代码重复和耦合，提高代码可读性和可维护性，我们采用充血模型设计，模型不仅包含数据属性，还包括业务逻辑、行为和状态。在充血模型设计中，每个领域对象都有自己的职责和行为，它们能够处理自己的状态并执行业务操作。
-* CQRS接口设计：CQRS是指命令查询职责分离（Command Query Responsibility Segregation），写操作使用命令模型，读操作使用查询模型。命令模型表示应用程序执行的操作，包含与业务相关的状态改变和操作行为。查询模型表示应用程序的数据状态，它们通常是只读的，并提供了一些查询接口来查询数据。
+* DDD, 但不为了DDD而DDD：领域驱动设计（Domain-Driven Design）, 目前DDD的落地框架，大多引入了太多的设计概念, 而且对这些概念也没有良好的封装，系统里面各种领域服务及其对应的接口十分冗杂, 开发体验不好, 然而针对大多数没有跨领域调用需求的业务模块, 我们并不需要这些"解耦", 我们在中小型项目的模型去掉了这些冗余, 同时我们也保留了大型项目通过Mediator的解耦的可能性, 并提供了对应的代码生成器
+* 充血模型：为了减少代码重复和耦合，提高代码可读性和可维护性，我们采用充血模型设计，所有的业务源头都指向一个强功能的业务对象, 业务内聚在对象本身上, 不再需要所谓的"领域服务(xxxService\xxxManager)", 模型合并行为和状态，支持依赖注入, 可以实现全功能的业务逻辑。
+* CQRS接口设计：CQRS是指命令查询职责分离（Command Query Responsibility Segregation），写操作使用事务安全的命令模型，读操作使用高性能优化的查询模型。命令模型注重与业务数据的增删改等业务逻辑。查询模型注重业务数据的只读查询和分析。
 * 补充
 
 #### 前端：
 
-Geex的前端相对于后端可谓是更加强大，我们封装了非常多的tools来帮助前端开发，如合理的结构化设计、（List、Edit、View、Module）的基类、Linq表达式扩展前端对象操作能力、生成强类型的客户端代理,无需手动编写HTTP请求和处理响应、动态Table表格、非常多的业务功能组件、路由参数和表单约束等。可以让开发人员专注于业务逻辑的实现，从而提高开发效率和代码质量。
+Geex的前端功能也十分强大，我们封装了非常多的通用工具来帮助前端开发，如基于最佳实践的项目结构设计、（List、Edit、View、Module）等组件\模块的基类、前端Linq表达式扩展、强类型的客户端代理生成器(无需手动编写HTTP请求和处理响应)、动态Table表格、非常多的业务功能组件、路由参数解析和表单约束等。可以让开发人员专注于业务逻辑的实现，从而提高开发效率和代码质量。
 * 补充
 
 
@@ -453,7 +466,7 @@ Geex的前端相对于后端可谓是更加强大，我们封装了非常多的t
 
 
 ```cs
-        public static demoSettings MaxBorrowingQtySettings { get; } = new(nameof(MaxBorrowingQtySettings), new[] { SettingScopeEnumeration.Global, }, "MaxBorrowingQtySettings", JsonValue.Create(3));
+        public static DemoSettings MaxBorrowingQtySettings { get; } = new(nameof(MaxBorrowingQtySettings), new[] { SettingScopeEnumeration.Global, }, "MaxBorrowingQtySettings", JsonValue.Create(3));
 ```
 
 
