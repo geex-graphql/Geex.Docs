@@ -1,7 +1,7 @@
 ---
 sidebar_position: 1
 ---
-# 入门教程
+# 框架入门教程
 
 ## intro
 
